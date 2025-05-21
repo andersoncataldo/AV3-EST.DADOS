@@ -1,4 +1,5 @@
 import java.io.*;
+import java.text.Normalizer;
 import java.util.*;
 
 public class Main {
@@ -27,15 +28,24 @@ public class Main {
         }
     }
 
+    public static String normalizarPalavra(String palavra) {
+        String semAcento = Normalizer.normalize(palavra, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
+        if (semAcento.endsWith("s")) {
+            semAcento = semAcento.substring(0, semAcento.length() - 1);
+        }
+        return semAcento;
+    }
+
     public static List<String> lerPalavrasChave(String arquivo) throws IOException {
         List<String> palavras = new ArrayList<>();
         BufferedReader reader = new BufferedReader(new FileReader(arquivo));
         String linha;
         while ((linha = reader.readLine()) != null) {
-            String[] tokens = linha.toLowerCase().replaceAll("[^a-z0-9, \\-]", "").split("[,\\s]+");
+            String[] tokens = linha.toLowerCase().split("[,\\s]+");
             for (String palavra : tokens) {
-                if (!palavra.isEmpty() && !palavras.contains(palavra)) {
-                    palavras.add(palavra);
+                String limpa = normalizarPalavra(palavra);
+                if (!limpa.isEmpty() && !palavras.contains(limpa)) {
+                    palavras.add(limpa);
                 }
             }
         }
@@ -49,12 +59,13 @@ public class Main {
         int linha = 1;
 
         while ((linhaTexto = reader.readLine()) != null) {
-            String[] palavras = linhaTexto.toLowerCase().replaceAll("[^a-z0-9 \\-]", "").split("\\s+");
+            String[] palavras = linhaTexto.toLowerCase().split("\\s+");
             for (String palavraStr : palavras) {
-                if (palavraStr.isEmpty()) continue;
-                Palavra palavra = hash.buscar(palavraStr);
+                String limpa = normalizarPalavra(palavraStr.replaceAll("[^a-z0-9áéíóúàèìòùâêîôûãõç\\-]", ""));
+                if (limpa.isEmpty()) continue;
+                Palavra palavra = hash.buscar(limpa);
                 if (palavra == null) {
-                    palavra = new Palavra(palavraStr);
+                    palavra = new Palavra(limpa);
                     palavra.adicionarOcorrencia(linha);
                     lista.inserir(palavra);
                     hash.inserir(palavra);
@@ -72,8 +83,7 @@ public class Main {
         BufferedWriter writer = new BufferedWriter(new FileWriter(nomeArquivo));
 
         for (String chave : palavrasChave) {
-            String chaveLimpa = chave.toLowerCase().replaceAll("[^a-z0-9\\-]", "");
-            Palavra p = hash.buscar(chaveLimpa);
+            Palavra p = hash.buscar(chave);
             if (p != null) {
                 writer.write(chave);
                 System.out.print(chave);
@@ -92,6 +102,7 @@ public class Main {
     }
 }
 
+// As demais classes (Palavra, ListaOcorrencias, ListaEncadeada, TabelaHash, ArvoreBinaria) permanecem inalteradas.
 class Palavra {
     private String texto;
     private ListaOcorrencias ocorrencias;
